@@ -132,61 +132,64 @@ class SortableCGridView extends CGridView
    protected function getSortScript()
    {
       return '
-         var grid_id = '.Cjavascript::encode($this->getId()).';
-         var grid_selector = '.Cjavascript::encode('#'.$this->getId()).';
-         var tbody_selector = '.Cjavascript::encode('#'.$this->getId().' tbody').';
-         /*apply sortable*/
-         $(tbody_selector).sortable('.CJavascript::encode($this->jqueryUiSortableOptions).');
-         /*helper to keep each table cell width while dragging*/
-         $(tbody_selector).sortable("option", "helper", function(e, ui) {
-            ui.children().each(function() {
-               $(this).width($(this).width());
+         (function(){
+            var grid_id = '.Cjavascript::encode($this->getId()).';
+            var grid_selector = '.Cjavascript::encode('#'.$this->getId()).';
+            var tbody_selector = '.Cjavascript::encode('#'.$this->getId().' tbody').';
+            /*apply sortable*/
+            $(tbody_selector).sortable('.CJavascript::encode($this->jqueryUiSortableOptions).');
+            /*helper to keep each table cell width while dragging*/
+            $(tbody_selector).sortable("option", "helper", function(e, ui) {
+               ui.children().each(function() {
+                  $(this).width($(this).width());
+               });
+               return ui;
             });
-            return ui;
-         });
-         /*add dragged row index before moving as an attribute. Used to know if item is moved forward or backward*/
-         $(tbody_selector).bind("sortstart", function(event, ui) {
-            ui.item.attr("data-prev-index", ui.item.index());
-         });
-         /*trigger ajax sorting when grid is updated*/
-         $(tbody_selector).bind("sortupdate", function(event, ui) {
-            $(grid_selector).addClass('.CJavascript::encode($this->loadingCssClass).');
-            var data = {};
-            data["dragged_item_id"] = parseInt(ui.item.attr("data-id"));
-            var prev_index = parseInt(ui.item.attr("data-prev-index"));
-            var new_index = parseInt(ui.item.index());
-            /*which item place take dragged item*/
-            if (prev_index < new_index) {
-               data["replacement_item_id"] = ui.item.prev().attr("data-id");
-            } else {
-               data["replacement_item_id"] = ui.item.next().attr("data-id");
-            }
-            data["model"] = '.Cjavascript::encode($this->dataProvider->modelClass).';
-            data["order_field"] = '.Cjavascript::encode($this->orderField).';
-            ui.item.removeAttr("data-prev-index");
-            '.CHtml::ajax(array(
-               'type' => 'POST',
-               'url' => Yii::App()->controller->createAbsoluteUrl($this->orderUrl),
-               'data' => 'js:data',
-               'success' => 'js:function() {
-                  $(grid_selector).removeClass('.CJavascript::encode($this->loadingCssClass).');
-                  /*update the whole grid again to update row class values*/
-                  if ("'.(string)$this->updateAfterSorting.'") {
+            /*add dragged row index before moving as an attribute. Used to know if item is moved forward or backward*/
+            $(tbody_selector).bind("sortstart", function(event, ui) {
+               ui.item.attr("data-prev-index", ui.item.index());
+            });
+            /*trigger ajax sorting when grid is updated*/
+            $(tbody_selector).bind("sortupdate", function(event, ui) {
+               $(grid_selector).addClass('.CJavascript::encode($this->loadingCssClass).');
+               var data = {};
+               data["dragged_item_id"] = parseInt(ui.item.attr("data-id"));
+               var prev_index = parseInt(ui.item.attr("data-prev-index"));
+               var new_index = parseInt(ui.item.index());
+               /*which item place take dragged item*/
+               if (prev_index < new_index) {
+                  data["replacement_item_id"] = ui.item.prev().attr("data-id");
+               } else {
+                  data["replacement_item_id"] = ui.item.next().attr("data-id");
+               }
+               data["model"] = '.Cjavascript::encode($this->dataProvider->modelClass).';
+               data["order_field"] = '.Cjavascript::encode($this->orderField).';
+               data["YII_CSRF_TOKEN"] = '.Cjavascript::encode(Yii::app()->getRequest()->getCsrfToken()).';
+               ui.item.removeAttr("data-prev-index");
+               '.CHtml::ajax(array(
+                  'type' => 'POST',
+                  'url' => Yii::App()->controller->createAbsoluteUrl($this->orderUrl),
+                  'data' => 'js:data',
+                  'success' => 'js:function() {
+                     $(grid_selector).removeClass('.CJavascript::encode($this->loadingCssClass).');
+                     /*update the whole grid again to update row class values*/
+                     if ("'.(string)$this->updateAfterSorting.'") {
+                        $.fn.yiiGridView.update(grid_id);
+                     }
+                     if ("'.(string)$this->successMessage.'") {
+                        alert('.CJavascript::encode($this->successMessage).');
+                     }
+                   }
+                  ',
+                  'error' => 'js:function() {
+                     $(grid_selector).removeClass('.CJavascript::encode($this->loadingCssClass).');
+                     alert('.CJavascript::encode($this->errorMessage).');
                      $.fn.yiiGridView.update(grid_id);
                   }
-                  if ("'.(string)$this->successMessage.'") {
-                     alert('.CJavascript::encode($this->successMessage).');
-                  }
-                }
-               ',
-               'error' => 'js:function() {
-                  $(grid_selector).removeClass('.CJavascript::encode($this->loadingCssClass).');
-                  alert('.CJavascript::encode($this->errorMessage).');
-                  $.fn.yiiGridView.update(grid_id);
-               }
-               '
-            )).'
-         });
+                  '
+               )).'
+            });
+         })();
       ';
    }
 
